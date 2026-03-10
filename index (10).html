@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web 3D Engine Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ══════════ MENU BAR ══════════ -->
+    <div class="menu-bar">
+        <div class="app-logo"><i class="fas fa-cube"></i> <span>FORGE3D</span></div>
+
+        <div class="menu-item">File
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="newScene()">New Scene <span>Ctrl+N</span></div>
+                <div class="dropdown-item" onclick="saveScene()">Save Scene <span>Ctrl+S</span></div>
+                <div class="dropdown-item" onclick="document.getElementById('load-file-input').click()">Load Scene</div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item" onclick="exportScripts()">Export Scripts</div>
+            </div>
+        </div>
+
+        <div class="menu-item">Edit
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="undoAction()">Undo <span>Ctrl+Z</span></div>
+                <div class="dropdown-item" onclick="redoAction()">Redo <span>Ctrl+Y</span></div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item" onclick="duplicateSelected()">Duplicate <span>Ctrl+D</span></div>
+                <div class="dropdown-item" onclick="deleteSelected()">Delete <span>Del</span></div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item" onclick="selectAll()">Select All <span>Ctrl+A</span></div>
+            </div>
+        </div>
+
+        <div class="menu-item">GameObject
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="createEngineObject('GameObject','Empty')">Create Empty</div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item has-submenu">3D Object <i class="fas fa-chevron-right sub-arrow"></i>
+                    <div class="context-submenu">
+                        <div class="dropdown-item" onclick="createEngineObject('Cube','Cube')">Cube</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Sphere','Sphere')">Sphere</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Plane','Plane')">Plane</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Cylinder','Cylinder')">Cylinder</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Torus','Torus')">Torus</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Cone','Cone')">Cone</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Icosphere','Icosphere')">Icosphere</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Ring','Ring')">Ring</div>
+                    </div>
+                </div>
+                <div class="dropdown-item has-submenu">Light <i class="fas fa-chevron-right sub-arrow"></i>
+                    <div class="context-submenu">
+                        <div class="dropdown-item" onclick="createEngineObject('Directional Light','DirectionalLight')">Directional Light</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Point Light','PointLight')">Point Light</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Spot Light','SpotLight')">Spot Light</div>
+                        <div class="dropdown-item" onclick="createEngineObject('Hemisphere Light','HemisphereLight')">Hemisphere Light</div>
+                    </div>
+                </div>
+                <div class="dropdown-item" onclick="createEngineObject('Camera','Camera')">Camera</div>
+                <div class="dropdown-item" onclick="createEngineObject('Particle System','Particles')">Particle System</div>
+            </div>
+        </div>
+
+        <div class="menu-item">View
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="setViewportMode('single')">Single View</div>
+                <div class="dropdown-item" onclick="setViewportMode('quad')">Quad View</div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item" onclick="focusSelected()">Focus Selected <span>F</span></div>
+                <div class="dropdown-item" onclick="toggleSnapping()">Toggle Snap</div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item" onclick="openModal('modal-scene-settings')">Scene Settings</div>
+                <div class="dropdown-item" onclick="toggleStatsOverlay()">Toggle Stats HUD</div>
+            </div>
+        </div>
+
+        <div class="menu-item" onclick="openModal('modal-prefabs')">Prefabs</div>
+        <div class="menu-item" onclick="openModal('modal-components')">Components</div>
+
+        <div class="menu-item">Scripting
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="openScriptEditorForSelected()"><i class="fas fa-code fa-fw"></i> Edit Script <span>Ctrl+E</span></div>
+                <div class="dropdown-item" onclick="playScene()"><i class="fas fa-play fa-fw"></i> Run Scene <span>Ctrl+P</span></div>
+                <div class="dropdown-item" onclick="stopScene()"><i class="fas fa-stop fa-fw"></i> Stop Scene <span>Ctrl+.</span></div>
+                <div class="dropdown-sep"></div>
+                <div class="dropdown-item" onclick="openModal('modal-api-docs')">API Reference</div>
+            </div>
+        </div>
+
+        <div class="menu-item">Window
+            <div class="dropdown-content">
+                <div class="dropdown-item" onclick="openModal('modal-history')">History <span>Ctrl+H</span></div>
+                <div class="dropdown-item" onclick="openModal('modal-shortcuts')">Shortcuts</div>
+                <div class="dropdown-item" onclick="openModal('modal-tags')">Tag Manager</div>
+                <div class="dropdown-item" onclick="openModal('modal-scene-settings')">Scene Settings</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ TOOLBAR ══════════ -->
+    <div class="toolbar">
+        <div class="toolbar-group" id="transform-tools">
+            <button class="tool-btn" id="tool-select" title="Select (Q)"><i class="fas fa-mouse-pointer"></i></button>
+            <button class="tool-btn active" id="tool-move"   title="Move (W)"><i class="fas fa-arrows-alt"></i></button>
+            <button class="tool-btn" id="tool-rotate" title="Rotate (E)"><i class="fas fa-sync-alt"></i></button>
+            <button class="tool-btn" id="tool-scale"  title="Scale (R)"><i class="fas fa-compress-arrows-alt"></i></button>
+        </div>
+        <div class="toolbar-separator"></div>
+
+        <!-- Play Controls -->
+        <div class="toolbar-group play-controls">
+            <button class="tool-btn play-btn" id="btn-play"  title="Play (Ctrl+P)" onclick="playScene()"><i class="fas fa-play"></i></button>
+            <button class="tool-btn"          id="btn-pause" title="Pause" onclick="pauseScene()"><i class="fas fa-pause"></i></button>
+            <button class="tool-btn"          id="btn-stop"  title="Stop (Ctrl+.)" onclick="stopScene()"><i class="fas fa-stop"></i></button>
+        </div>
+
+        <div class="toolbar-separator"></div>
+
+        <div class="toolbar-group" style="margin:0 auto;">
+            <button class="tool-btn active" id="toggle-grid"  title="Grid"><i class="fas fa-border-all"></i></button>
+            <button class="tool-btn active" id="toggle-gizmo" title="Axis Gizmo"><i class="fas fa-crosshairs"></i></button>
+            <button class="tool-btn"        id="toggle-snap"  title="Snap (Shift)"><i class="fas fa-magnet"></i></button>
+            <button class="tool-btn"        id="toggle-quad"  title="Quad View"><i class="fas fa-th"></i></button>
+            <button class="tool-btn"        id="btn-focus"    title="Focus (F)"><i class="fas fa-compress"></i></button>
+        </div>
+
+        <div class="toolbar-separator"></div>
+
+        <div class="toolbar-group">
+            <button class="tool-btn" id="btn-undo"      title="Undo"><i class="fas fa-undo"></i></button>
+            <button class="tool-btn" id="btn-redo"      title="Redo"><i class="fas fa-redo"></i></button>
+            <button class="tool-btn" id="btn-duplicate" title="Duplicate"><i class="fas fa-clone"></i></button>
+            <button class="tool-btn" id="btn-delete"    title="Delete"><i class="fas fa-trash"></i></button>
+        </div>
+
+        <div class="toolbar-separator"></div>
+        <!-- Quick script open -->
+        <div class="toolbar-group">
+            <button class="tool-btn script-btn" title="Edit Script (Ctrl+E)" onclick="openScriptEditorForSelected()">
+                <i class="fas fa-code"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ══════════ WORKSPACE ══════════ -->
+    <div class="workspace">
+        <div class="main-panels" id="main-panels">
+
+            <!-- LEFT: Hierarchy -->
+            <div class="panel left-panel" id="panel-left">
+                <div class="panel-header">
+                    <i class="fas fa-sitemap" style="margin-right:5px;font-size:10px;opacity:.6;"></i>Hierarchy
+                    <button class="panel-header-btn" onclick="createEngineObject('GameObject','Empty')" title="Add"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="panel-content" id="hierarchy-content">
+                    <div class="hierarchy-root">
+                        <i class="fas fa-globe-americas" style="margin-right:4px;opacity:.6;"></i>Scene
+                    </div>
+                    <div id="hierarchy-list"></div>
+                </div>
+            </div>
+
+            <div class="resizer-x" id="resizer-l-c"></div>
+
+            <!-- CENTER: Viewport -->
+            <div class="panel center-panel" id="panel-center">
+                <div class="panel-header" style="padding:0;justify-content:space-between;">
+                    <div class="panel-tabs">
+                        <div class="panel-tab active"><i class="fas fa-globe" style="margin-right:4px;"></i>Scene</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;padding-right:8px;">
+                        <select class="overlay-select" id="overlay-shading" style="height:20px;font-size:11px;">
+                            <option value="shaded">Shaded</option>
+                            <option value="wireframe">Wireframe</option>
+                            <option value="unlit">Unlit</option>
+                        </select>
+                        <span id="snap-indicator" class="snap-indicator hidden">⊞ SNAP</span>
+                        <span id="play-indicator" class="play-indicator hidden">▶ PLAYING</span>
+                    </div>
+                </div>
+                <div id="multi-select-bar" class="multi-select-bar hidden">
+                    <span id="multi-count-label">0 objects selected</span>
+                    <button class="ms-btn" onclick="groupMultiSelected()"><i class="fas fa-object-group"></i> Group (G)</button>
+                    <button class="ms-btn" onclick="duplicateMultiSelected()"><i class="fas fa-clone"></i> Duplicate</button>
+                    <button class="ms-btn ms-btn-danger" onclick="deleteMultiSelected()"><i class="fas fa-trash"></i> Delete</button>
+                    <button class="ms-btn" onclick="clearMultiSelect()"><i class="fas fa-times"></i> Deselect</button>
+                </div>
+                <div id="viewport-wrapper" class="viewport-wrapper single-view">
+                    <div id="viewport-main" class="viewport-pane">
+                        <div class="pane-label">Perspective</div>
+                        <div id="canvas-container" style="width:100%;height:100%;"></div>
+                        <canvas id="gizmo-canvas" width="90" height="90"></canvas>
+                        <!-- Scene Stats HUD -->
+                        <canvas id="stats-canvas" class="stats-canvas hidden" width="200" height="120"></canvas>
+                    </div>
+                    <div id="viewport-top"   class="viewport-pane quad-pane hidden"><div class="pane-label">Top</div><div id="canvas-top" style="width:100%;height:100%;"></div></div>
+                    <div id="viewport-front" class="viewport-pane quad-pane hidden"><div class="pane-label">Front</div><div id="canvas-front" style="width:100%;height:100%;"></div></div>
+                    <div id="viewport-side"  class="viewport-pane quad-pane hidden"><div class="pane-label">Side</div><div id="canvas-side" style="width:100%;height:100%;"></div></div>
+                </div>
+            </div>
+
+            <div class="resizer-x" id="resizer-c-r"></div>
+
+            <!-- RIGHT: Inspector -->
+            <div class="panel right-panel" id="panel-right">
+                <div class="panel-header">
+                    <i class="fas fa-sliders-h" style="margin-right:5px;font-size:10px;opacity:.6;"></i>Inspector
+                </div>
+                <div class="panel-content" id="inspector-content">
+                    <div class="empty-state" id="inspector-empty">
+                        <i class="fas fa-mouse-pointer" style="font-size:22px;margin-bottom:8px;display:block;opacity:0.2;"></i>
+                        No object selected
+                    </div>
+                    <div id="inspector-props" class="hidden">
+                        <div class="insp-obj-header">
+                            <input type="checkbox" id="insp-active" checked>
+                            <i class="fas fa-cube insp-obj-icon" id="insp-icon"></i>
+                            <input type="text" id="insp-name" class="insp-name-input" value="Object">
+                            <span class="insp-layer-badge" id="insp-layer-badge"></span>
+                        </div>
+                        <!-- Tags row -->
+                        <div id="insp-tags-row" style="padding:4px 10px 6px;border-bottom:1px solid var(--border-color);display:flex;flex-wrap:wrap;gap:3px;align-items:center;min-height:28px;">
+                            <span style="color:var(--text-inactive);font-size:10px;margin-right:3px;">Tags:</span>
+                            <div id="insp-tags-list"></div>
+                            <button class="small-btn" onclick="addTagToSelected()" style="font-size:9px;padding:1px 5px;">+</button>
+                        </div>
+                        <details class="inspector-section" open>
+                            <summary>Transform</summary>
+                            <div class="inspector-content-inner">
+                                <div class="prop-row">
+                                    <div class="prop-label">Position</div>
+                                    <div class="prop-inputs">
+                                        <div class="prop-input-group"><span class="prop-axis x">X</span><input type="number" id="pos-x" step="0.1"></div>
+                                        <div class="prop-input-group"><span class="prop-axis y">Y</span><input type="number" id="pos-y" step="0.1"></div>
+                                        <div class="prop-input-group"><span class="prop-axis z">Z</span><input type="number" id="pos-z" step="0.1"></div>
+                                    </div>
+                                </div>
+                                <div class="prop-row">
+                                    <div class="prop-label">Rotation</div>
+                                    <div class="prop-inputs">
+                                        <div class="prop-input-group"><span class="prop-axis x">X</span><input type="number" id="rot-x" step="1"></div>
+                                        <div class="prop-input-group"><span class="prop-axis y">Y</span><input type="number" id="rot-y" step="1"></div>
+                                        <div class="prop-input-group"><span class="prop-axis z">Z</span><input type="number" id="rot-z" step="1"></div>
+                                    </div>
+                                </div>
+                                <div class="prop-row">
+                                    <div class="prop-label">Scale</div>
+                                    <div class="prop-inputs">
+                                        <div class="prop-input-group"><span class="prop-axis x">X</span><input type="number" id="scl-x" step="0.1" value="1"></div>
+                                        <div class="prop-input-group"><span class="prop-axis y">Y</span><input type="number" id="scl-y" step="0.1" value="1"></div>
+                                        <div class="prop-input-group"><span class="prop-axis z">Z</span><input type="number" id="scl-z" step="0.1" value="1"></div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:5px;margin-top:6px;">
+                                    <button class="small-btn" onclick="resetTransform('pos')">Reset Pos</button>
+                                    <button class="small-btn" onclick="resetTransform('rot')">Reset Rot</button>
+                                    <button class="small-btn" onclick="resetTransform('scl')">Reset Scale</button>
+                                </div>
+                            </div>
+                        </details>
+                        <div id="inspector-dynamic"></div>
+                        <div style="padding:10px;display:flex;flex-direction:column;gap:6px;">
+                            <button class="add-component-btn" onclick="openModal('modal-components')"><i class="fas fa-plus"></i> Add Component</button>
+                            <button class="add-component-btn prefab-save-btn" onclick="savePrefab()"><i class="fas fa-save"></i> Save as Prefab</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="resizer-y" id="resizer-m-b"></div>
+
+        <!-- BOTTOM Panel -->
+        <div class="bottom-panel" id="panel-bottom">
+            <div class="panel-header" style="padding:0;">
+                <div class="panel-tabs" id="bottom-tabs">
+                    <div class="panel-tab active" data-target="tab-console">Console</div>
+                    <div class="panel-tab" data-target="tab-assets">Assets</div>
+                    <div class="panel-tab" data-target="tab-prefabs-panel">Prefabs</div>
+                    <div class="panel-tab" data-target="tab-history">History</div>
+                </div>
+                <button class="panel-header-btn" onclick="clearConsole()" title="Clear Console" style="margin-left:auto;margin-right:4px;"><i class="fas fa-ban"></i></button>
+            </div>
+            <div class="panel-content" style="padding:0;">
+                <div id="tab-console" class="console-output"></div>
+                <div id="tab-assets" class="hidden empty-state">Drag GLTF / OBJ files here to import.</div>
+                <div id="tab-prefabs-panel" class="hidden"><div id="prefab-shelf" class="prefab-shelf"></div></div>
+                <div id="tab-history" class="hidden"><div id="history-list" class="history-list"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span id="stat-objects">Objects: 0</span><span>|</span>
+        <span id="stat-scripts">Scripts: 0</span><span>|</span>
+        <span id="stat-fps">FPS: 60</span><span>|</span>
+        <span id="stat-snap">Snap: OFF</span><span>|</span>
+        <span id="stat-mode">Perspective</span><span>|</span>
+        <span>Forge3D v0.3</span><span>|</span>
+        <span id="stat-mem">Memory: 120MB</span>
+    </div>
+</div>
+
+<!-- ══════════ HIERARCHY CONTEXT MENU ══════════ -->
+<div class="context-menu" id="hierarchy-context">
+    <div class="context-item" onclick="createEngineObject('GameObject','Empty');closeCtx()">Create Empty</div>
+    <div class="dropdown-sep"></div>
+    <div class="context-item has-submenu">3D Object <i class="fas fa-chevron-right sub-arrow"></i>
+        <div class="context-submenu">
+            <div class="context-item" onclick="createEngineObject('Cube','Cube');closeCtx()">Cube</div>
+            <div class="context-item" onclick="createEngineObject('Sphere','Sphere');closeCtx()">Sphere</div>
+            <div class="context-item" onclick="createEngineObject('Plane','Plane');closeCtx()">Plane</div>
+            <div class="context-item" onclick="createEngineObject('Cylinder','Cylinder');closeCtx()">Cylinder</div>
+            <div class="context-item" onclick="createEngineObject('Torus','Torus');closeCtx()">Torus</div>
+            <div class="context-item" onclick="createEngineObject('Cone','Cone');closeCtx()">Cone</div>
+            <div class="context-item" onclick="createEngineObject('Icosphere','Icosphere');closeCtx()">Icosphere</div>
+            <div class="context-item" onclick="createEngineObject('Ring','Ring');closeCtx()">Ring</div>
+        </div>
+    </div>
+    <div class="context-item has-submenu">Light <i class="fas fa-chevron-right sub-arrow"></i>
+        <div class="context-submenu">
+            <div class="context-item" onclick="createEngineObject('Directional Light','DirectionalLight');closeCtx()">Directional Light</div>
+            <div class="context-item" onclick="createEngineObject('Point Light','PointLight');closeCtx()">Point Light</div>
+            <div class="context-item" onclick="createEngineObject('Spot Light','SpotLight');closeCtx()">Spot Light</div>
+            <div class="context-item" onclick="createEngineObject('Hemisphere Light','HemisphereLight');closeCtx()">Hemisphere Light</div>
+        </div>
+    </div>
+    <div class="context-item" onclick="createEngineObject('Camera','Camera');closeCtx()">Camera</div>
+    <div class="context-item" onclick="createEngineObject('Particle System','Particles');closeCtx()">Particle System</div>
+    <div class="dropdown-sep"></div>
+    <div class="context-item" onclick="openScriptEditorForSelected();closeCtx()"><i class="fas fa-code fa-fw"></i> Edit Script</div>
+    <div class="context-item" onclick="duplicateSelected();closeCtx()"><i class="fas fa-clone fa-fw"></i> Duplicate</div>
+    <div class="context-item ctx-danger" onclick="deleteSelected();closeCtx()"><i class="fas fa-trash fa-fw"></i> Delete</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SCRIPT EDITOR OVERLAY (fullscreen)
+══════════════════════════════════════════════════════════ -->
+<div id="script-editor-overlay" class="script-editor-overlay">
+    <div class="script-editor-topbar">
+        <div class="script-editor-title-area">
+            <i class="fas fa-code" style="color:var(--accent-color);margin-right:8px;"></i>
+            <span id="script-editor-title">Script Editor</span>
+            <span id="script-dirty-dot" class="dirty-dot hidden">●</span>
+        </div>
+        <div class="script-editor-toolbar">
+            <button class="se-btn" onclick="insertTemplate('rotate')" title="Insert rotate snippet"><i class="fas fa-sync-alt"></i> Rotate</button>
+            <button class="se-btn" onclick="insertTemplate('color')"  title="Color cycle"><i class="fas fa-palette"></i> Color</button>
+            <button class="se-btn" onclick="insertTemplate('move')"   title="Key movement"><i class="fas fa-arrows-alt"></i> Move</button>
+            <div class="se-sep"></div>
+            <button class="se-btn" onclick="lintScript()"><i class="fas fa-bug"></i> Lint</button>
+            <div class="se-sep"></div>
+            <button class="se-btn se-run" onclick="saveAndPlay()"><i class="fas fa-play"></i> Save & Run</button>
+            <button class="se-btn se-save" onclick="closeScriptEditor(true)"><i class="fas fa-save"></i> Save <span style="opacity:.6;font-size:10px;">Ctrl+S</span></button>
+            <button class="se-btn se-close" onclick="closeScriptEditor(false)"><i class="fas fa-times"></i> Close</button>
+        </div>
+    </div>
+
+    <div class="script-editor-body">
+        <!-- Sidebar: API Reference -->
+        <div class="script-sidebar" id="script-sidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" onclick="switchSidebarTab('api',this)">API</button>
+                <button class="sidebar-tab" onclick="switchSidebarTab('snippets',this)">Snippets</button>
+            </div>
+            <div id="sidebar-api" class="sidebar-panel">
+                <input type="text" id="api-search" placeholder="Search API..." class="api-search-input">
+                <div id="api-reference-list" class="api-reference-list"></div>
+            </div>
+            <div id="sidebar-snippets" class="sidebar-panel hidden">
+                <div style="font-size:10px;color:var(--text-inactive);padding:6px 4px 8px;">Click to insert at cursor</div>
+                <div id="snippet-list" class="snippet-list"></div>
+            </div>
+        </div>
+
+        <!-- Code Editor Area -->
+        <div class="script-editor-main">
+            <div class="script-editor-code-area">
+                <div id="script-line-numbers" class="script-line-numbers"></div>
+                <textarea id="script-textarea" class="script-textarea" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off"></textarea>
+            </div>
+            <div id="script-error-bar" class="script-error-bar hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ MODALS ══════════ -->
+<div class="modal-overlay" id="modal-history">
+    <div class="modal-panel" style="width:380px;">
+        <div class="modal-header"><span><i class="fas fa-history"></i> History</span><button class="modal-close" onclick="closeModal('modal-history')"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body" style="padding:0;max-height:420px;overflow-y:auto;"><div id="modal-history-list" class="history-list"></div></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-prefabs">
+    <div class="modal-panel" style="width:520px;">
+        <div class="modal-header"><span><i class="fas fa-boxes"></i> Prefab Library</span><button class="modal-close" onclick="closeModal('modal-prefabs')"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body">
+            <div id="modal-prefab-grid" class="prefab-grid"></div>
+            <div class="empty-state" id="prefab-empty">No prefabs saved. Select an object → "Save as Prefab".</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-components">
+    <div class="modal-panel" style="width:440px;">
+        <div class="modal-header"><span><i class="fas fa-puzzle-piece"></i> Add Component</span><button class="modal-close" onclick="closeModal('modal-components')"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body">
+            <input type="text" id="component-search" placeholder="Search components..." class="component-search-input" oninput="filterComponents()">
+            <div id="component-list" class="component-list"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-shortcuts">
+    <div class="modal-panel" style="width:440px;">
+        <div class="modal-header"><span><i class="fas fa-keyboard"></i> Keyboard Shortcuts</span><button class="modal-close" onclick="closeModal('modal-shortcuts')"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body">
+            <table class="shortcut-table">
+                <tr><td>W / E / R / Q</td><td>Move / Rotate / Scale / Select</td></tr>
+                <tr><td>F</td><td>Focus selected object</td></tr>
+                <tr><td>Delete</td><td>Delete selected</td></tr>
+                <tr><td>Ctrl+D</td><td>Duplicate selected</td></tr>
+                <tr><td>Ctrl+A</td><td>Select all objects</td></tr>
+                <tr><td>Ctrl+Z / Ctrl+Y</td><td>Undo / Redo</td></tr>
+                <tr><td>Ctrl+E</td><td>Open Script Editor</td></tr>
+                <tr><td>Ctrl+P</td><td>Play Scene</td></tr>
+                <tr><td>Ctrl+.</td><td>Stop Scene</td></tr>
+                <tr><td>G</td><td>Group selected objects</td></tr>
+                <tr><td>Shift+Click</td><td>Add/remove from multi-selection</td></tr>
+                <tr><td>Shift (hold)</td><td>Enable snap mode</td></tr>
+                <tr><td>Ctrl+H</td><td>History</td></tr>
+                <tr><td>Escape</td><td>Deselect / Close</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Scene Settings Modal -->
+<div class="modal-overlay" id="modal-scene-settings">
+    <div class="modal-panel" style="width:400px;">
+        <div class="modal-header"><span><i class="fas fa-cog"></i> Scene Settings</span><button class="modal-close" onclick="closeModal('modal-scene-settings')"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body">
+            <div class="prop-row"><div class="prop-label">BG Color</div>
+                <input type="color" id="scene-bg-color" value="#1a1a1a" class="insp-input" style="height:28px;cursor:pointer;" onchange="scene.background=new THREE.Color(this.value)">
+            </div>
+            <div class="prop-row"><div class="prop-label">Fog</div>
+                <input type="checkbox" id="scene-fog-toggle" onchange="toggleSceneFog(this.checked)" style="cursor:pointer;">
+                &nbsp;Enabled
+            </div>
+            <div class="prop-row"><div class="prop-label">Fog Color</div>
+                <input type="color" id="scene-fog-color" value="#1a1a1a" class="insp-input" style="height:28px;cursor:pointer;" onchange="updateFog()">
+            </div>
+            <div class="prop-row"><div class="prop-label">Fog Near</div>
+                <div class="prop-input-group" style="flex:1;"><input type="number" id="scene-fog-near" value="20" class="insp-input" oninput="updateFog()"></div>
+            </div>
+            <div class="prop-row"><div class="prop-label">Fog Far</div>
+                <div class="prop-input-group" style="flex:1;"><input type="number" id="scene-fog-far" value="100" class="insp-input" oninput="updateFog()"></div>
+            </div>
+            <div class="prop-row"><div class="prop-label">Ambient</div>
+                <input type="color" id="scene-ambient-color" value="#404050" class="insp-input" style="height:28px;cursor:pointer;" onchange="updateAmbient()">
+                &nbsp;
+                <input type="range" id="scene-ambient-intensity" min="0" max="2" step="0.05" value="0.6" oninput="updateAmbient()" style="flex:1;">
+            </div>
+            <div class="prop-row"><div class="prop-label">Shadows</div>
+                <input type="checkbox" id="scene-shadows" checked onchange="renderer.shadowMap.enabled=this.checked" style="cursor:pointer;">
+                &nbsp;Enabled
+            </div>
+            <div class="prop-row"><div class="prop-label">Grid Size</div>
+                <div class="prop-input-group" style="flex:1;"><input type="number" id="scene-grid-size" value="30" min="5" max="200" step="5" oninput="updateGrid()" class="insp-input"></div>
+            </div>
+            <div style="margin-top:14px;border-top:1px solid var(--border-color);padding-top:12px;">
+                <div style="font-weight:700;font-size:11px;color:var(--accent-color);margin-bottom:10px;letter-spacing:.3px;"><i class="fas fa-magic"></i> POST-PROCESSING</div>
+                <div style="font-size:10px;color:var(--text-inactive);margin-bottom:8px;">First use: loads FX shaders (~2s)</div>
+                <button class="add-component-btn" onclick="initPostFX()" style="margin-bottom:10px;background:rgba(74,158,255,.1);border-color:rgba(74,158,255,.4);"><i class="fas fa-magic"></i> Enable Post-FX</button>
+
+                <!-- Bloom -->
+                <div class="fx-group">
+                    <div class="fx-row"><input type="checkbox" id="fx-bloom-enabled" onchange="onPostFXUIChange()"> <b>Bloom</b></div>
+                    <div class="fx-row"><span>Strength</span> <input type="range" id="fx-bloom-strength" min="0" max="3" step="0.01" value="0.4" oninput="onPostFXUIChange()"> <span id="fx-bloom-strength-v">0.4</span></div>
+                    <div class="fx-row"><span>Threshold</span> <input type="range" id="fx-bloom-threshold" min="0" max="1" step="0.01" value="0.85" oninput="onPostFXUIChange()"> <span id="fx-bloom-threshold-v">0.85</span></div>
+                    <div class="fx-row"><span>Radius</span> <input type="range" id="fx-bloom-radius" min="0" max="1" step="0.01" value="0.4" oninput="onPostFXUIChange()"> <span id="fx-bloom-radius-v">0.4</span></div>
+                </div>
+                <!-- DOF -->
+                <div class="fx-group">
+                    <div class="fx-row"><input type="checkbox" id="fx-dof-enabled" onchange="onPostFXUIChange()"> <b>Depth of Field</b></div>
+                    <div class="fx-row"><span>Focus</span> <input type="range" id="fx-dof-focus" min="0.1" max="100" step="0.1" value="10" oninput="onPostFXUIChange()"> <span id="fx-dof-focus-v">10</span></div>
+                    <div class="fx-row"><span>Aperture</span> <input type="range" id="fx-dof-aperture" min="0.000001" max="0.0001" step="0.000001" value="0.00002" oninput="onPostFXUIChange()"> <span id="fx-dof-aperture-v">0.00002</span></div>
+                    <div class="fx-row"><span>Max Blur</span> <input type="range" id="fx-dof-maxblur" min="0" max="0.05" step="0.0005" value="0.008" oninput="onPostFXUIChange()"> <span id="fx-dof-maxblur-v">0.008</span></div>
+                </div>
+                <!-- Chroma -->
+                <div class="fx-group">
+                    <div class="fx-row"><input type="checkbox" id="fx-chroma-enabled" onchange="onPostFXUIChange()"> <b>Chromatic Aberration</b></div>
+                    <div class="fx-row"><span>Strength</span> <input type="range" id="fx-chroma-strength" min="0" max="0.02" step="0.0001" value="0.003" oninput="onPostFXUIChange()"> <span id="fx-chroma-v">0.003</span></div>
+                </div>
+                <!-- Vignette -->
+                <div class="fx-group">
+                    <div class="fx-row"><input type="checkbox" id="fx-vignette-enabled" onchange="onPostFXUIChange()"> <b>Vignette</b></div>
+                    <div class="fx-row"><span>Intensity</span> <input type="range" id="fx-vignette-intensity" min="0" max="2" step="0.01" value="0.5" oninput="onPostFXUIChange()"></div>
+                    <div class="fx-row"><span>Smoothness</span> <input type="range" id="fx-vignette-smoothness" min="0" max="1" step="0.01" value="0.5" oninput="onPostFXUIChange()"></div>
+                </div>
+                <!-- Film Grain -->
+                <div class="fx-group">
+                    <div class="fx-row"><input type="checkbox" id="fx-grain-enabled" onchange="onPostFXUIChange()"> <b>Film Grain</b></div>
+                    <div class="fx-row"><span>Intensity</span> <input type="range" id="fx-grain-intensity" min="0" max="1" step="0.01" value="0.35" oninput="onPostFXUIChange()"></div>
+                </div>
+                <!-- Color Grade -->
+                <div class="fx-group">
+                    <div class="fx-row"><input type="checkbox" id="fx-cg-enabled" onchange="onPostFXUIChange()"> <b>Color Grade</b></div>
+                    <div class="fx-row"><span>Saturation</span> <input type="range" id="fx-cg-saturation" min="0" max="3" step="0.01" value="1" oninput="onPostFXUIChange()"></div>
+                    <div class="fx-row"><span>Brightness</span> <input type="range" id="fx-cg-brightness" min="0" max="2" step="0.01" value="1" oninput="onPostFXUIChange()"></div>
+                    <div class="fx-row"><span>Contrast</span> <input type="range" id="fx-cg-contrast" min="0" max="3" step="0.01" value="1" oninput="onPostFXUIChange()"></div>
+                    <div class="fx-row"><span>Hue</span> <input type="range" id="fx-cg-hue" min="0" max="1" step="0.001" value="0" oninput="onPostFXUIChange()"></div>
+                </div>
+                <!-- Presets -->
+                <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">
+                    <button class="snippet-btn" onclick="if(typeof buildPostFXScriptAPI==='function'){buildPostFXScriptAPI().preset('neon');onPostFXUIChange();}">Neon</button>
+                    <button class="snippet-btn" onclick="if(typeof buildPostFXScriptAPI==='function'){buildPostFXScriptAPI().preset('horror');onPostFXUIChange();}">Horror</button>
+                    <button class="snippet-btn" onclick="if(typeof buildPostFXScriptAPI==='function'){buildPostFXScriptAPI().preset('cinematic');onPostFXUIChange();}">Cinematic</button>
+                    <button class="snippet-btn" onclick="if(typeof buildPostFXScriptAPI==='function'){buildPostFXScriptAPI().preset('reset');onPostFXUIChange();}">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tag Manager Modal -->
+<div class="modal-overlay" id="modal-tags">
+    <div class="modal-panel" style="width:380px;">
+        <div class="modal-header"><span><i class="fas fa-tags"></i> Tag Manager</span><button class="modal-close" onclick="closeModal('modal-tags')"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body">
+            <div style="display:flex;gap:6px;margin-bottom:10px;">
+                <input type="text" id="new-tag-input" placeholder="New tag name..." class="component-search-input" style="margin-bottom:0;flex:1;">
+                <button class="add-component-btn" style="width:auto;padding:0 12px;" onclick="createGlobalTag()"><i class="fas fa-plus"></i></button>
+            </div>
+            <div id="tag-list" class="component-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- API Docs Modal (quick reference) -->
+<div class="modal-overlay" id="modal-api-docs">
+    <div class="modal-panel" style="width:600px;max-height:80vh;">
+        <div class="modal-header"><span><i class="fas fa-book"></i> Script API Reference</span><button class="modal-close" onclick="closeModal('modal-api-docs')"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body" style="padding:0;">
+            <div style="padding:8px 14px;border-bottom:1px solid var(--border-color);">
+                <input type="text" class="component-search-input" style="margin-bottom:0;" placeholder="Search API..." oninput="filterAPIRef(this.value)">
+            </div>
+            <div id="api-reference-list-modal" style="padding:10px 14px;max-height:60vh;overflow-y:auto;"></div>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="load-file-input" accept=".json" style="display:none;" onchange="handleLoadFile(event)">
+
+<!-- Scripts -->
+<script src="engine.js"></script>
+<script src="history.js"></script>
+<script src="physics.js"></script>
+<script src="postfx.js"></script>
+<script src="multiselect.js"></script>
+<script src="script-engine.js"></script>
+<script src="script-editor.js"></script>
+<script src="inspector.js"></script>
+<script src="viewport.js"></script>
+<script src="prefabs.js"></script>
+<script src="modals.js"></script>
+<script src="ui.js"></script>
+<script src="resizers.js"></script>
+<script src="shortcuts.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
